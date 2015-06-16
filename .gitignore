@@ -5,5 +5,4 @@
 # Include the following
 !.gitignore
 !/libraries/ReTeeLib/*
-!/libraries/ReTeeLib/test.h
 !/sketches/ReTee/*
