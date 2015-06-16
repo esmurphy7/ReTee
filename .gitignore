@@ -1,0 +1,6 @@
+# Ignore Everything
+*
+
+# Include the following
+!.gitignore
+!libraries/ReTeeLib/*
