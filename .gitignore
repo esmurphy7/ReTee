@@ -1,6 +1,8 @@
 # Ignore Everything
-*
+/libraries/*
+/sketches/*
 
 # Include the following
 !.gitignore
-!/libraries/ReTeeLib/
+!/libraries/ReTeeLib/*
+!/sketches/ReTee/*
