@@ -1,14 +1,12 @@
-
 // Headers ========================
 #include <Servo.h>
 
-#include "State.h"
 #include "Button.h"
 #include "ServoMotor.h"
 #include "IRSensor.h"
 #include "Actuator.h"
+#include "FiniteStateMachine.h"
 // ================================
-
 
 // Pin definitions ================
 int servoPinIn = 3;
@@ -20,30 +18,112 @@ int LEDPinOut = 2;
 // int calibratePinIn = ?;
 // ================================
 
-
-// System state ==================
-//State currentState;
-int currentState;
-// ================================
-
-// Hardware Objects =======================
-Button resetButton;
+// Hardware Objects ===============
+//Button resetButton;
 ServoMotor servo;
-//Servo servo;
 IRSensor sensor;
 Actuator actuator;
 // ================================
 
-void setup()
+// State Functions =========
+void OFFStateEnterFunction()
 {
+  // return arm to rest position
+  // shut off power
+  // close actuator
+  // record data?
+}
+void OFFStateUpdateFunction()
+{
+}
+void OFFStateExitFunction()
+{
+}
+
+void IDLEStateEnterFunction()
+{
+  // move arm to rest position
+  // close actuator
+}
+void IDLEStateUpdateFunction()
+{
+}
+void IDLEStateExitFunction()
+{  
+}
+
+void CALIBRATINGStateEnterFunction()
+{
+  // move arm to extended position
+  // close actuator
+}
+void CALIBRATINGStateUpdateFunction()
+{
+  // wait for user to place device
+}
+void CALIBRATINGStateExitFunction()
+{
+  // move arm to rest position
+}
+
+void TEEINGStateEnterFunction()
+{
+  // close actuator
+  // move arm to pickup position
+}
+void TEEINGStateUpdateFunction()
+{
+  // wait x seconds to collect ball
+  // move arm to extended position
+  // open actuator
+  // close actuator
+  // move arm to pickup position
+}
+void TEEINGStateExitFunction()
+{
+  // move arm to rest position
+}
+// ================================
+
+// State Transition Triggers =======
+enum Actions
+{
+  POWER = 0,
+  CALIBRATE,
+  RESET,
+  TEE
+};
+// ================================
+
+// State Definitions ===============
+State OFFState = State(OFFStateEnterFunction, 
+                      OFFStateUpdateFunction, 
+                      OFFStateExitFunction);
+
+State IDLEState = State(IDLEStateEnterFunction, 
+                      IDLEStateUpdateFunction, 
+                      IDLEStateExitFunction);
+                      
+State CALIBRATINGState = State(CALIBRATINGStateEnterFunction,
+                      CALIBRATINGStateUpdateFunction, 
+                      CALIBRATINGStateExitFunction);
+
+State TEEINGState = State(TEEINGStateEnterFunction, 
+                      TEEINGStateUpdateFunction,
+                      TEEINGStateExitFunction);
+
+// Start system in idle state                      
+FSM stateMachine = FSM(IDLEState);
+// ================================
+
+
+
+void setup()
+{  
   // Turn the Serial Protocol ON
   Serial.begin(9600);
   
-  // Start in off state
-  currentState = OFF;     
- 
   // Setup hardware components
-  //servo.attach(servoPinIn);
   servo.Init(servoPinIn);
   servo.MoveToRest();
   
@@ -70,74 +150,45 @@ void loop()
   }
   
   // State Machine Implementation
-  //Action previousAction;
-  //Action latestAction;
+  Actions previousAction;
+  Actions latestAction;
   
-  // check if power pressed
-  //latestAction = checkPowerButton();
+  // latestAction = checkForButtonClicks and SensorTimeout
   
-  // check if calibrate pressed
-  //latestAction = checkCalibrateButton();
-  
-  // check if reset pressed
-  //latestAction = checkResetButton();
-  
-  // check if sensor has timedout
-  //latestAction = checkSensorTimeout();
-  
-  // move to new state if signals sensed
-  /*
+  // don't transition if the action hasn't changed
   if(previousAction != latestAction)
-  { 
-     currentState = currentState.NextState(latestAction);
+  {  
+    // transition based on latest action
+    switch(latestAction)
+    {
+      case POWER: 
+        stateMachine.transitionTo(OFFState);
+        break;
+      case CALIBRATE: 
+        stateMachine.transitionTo(CALIBRATINGState);
+        break;
+      case RESET: 
+        stateMachine.transitionTo(IDLEState);
+        break;
+      case TEE: 
+        stateMachine.transitionTo(TEEINGState);
+        break;
+      default: 
+        Serial.print("Error: invalid action read: ");
+        Serial.println(latestAction);
+        break;
+    }
   }
-  */
   
-  // run a loop of the current state
-  //currentState.Run();
+  // record this loop's action
+  previousAction = latestAction;
   
-  // previousAction = latestAction;
-  
-  switch(currentState)
-  {
-    case OFF:
-      runOFFState();
-      break;
-    case IDLE:
-      runIDLEState();
-      break;
-    case CALIBRATING:
-      runCALIBRATINGState();
-      break;
-    case TEEING:
-      runTEEINGState();
-      break;
-    default:
-      Serial.println("Error: Invalid current state");
-      break;
-  } 
- 
- // update current state
- //
- 
+  // Update the state machine, must be called
+  stateMachine.update();
 }
 
-void runOFFState()
-{
-  
-}
 
-void runIDLEState()
-{
-  
-}
 
-void runCALIBRATINGState()
-{
-  
-}
 
-void runTEEINGState()
-{
-  
-}
+
+
