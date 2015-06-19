@@ -9,13 +9,13 @@
 // ================================
 
 // Pin definitions ================
-int servoPinIn = 3;
-int sensorPinIn = A0;
-int LEDPinOut = 2;
-//int actuatorPinOut = ?;
-// int powerPinIn = ?;
-// int resetPinIn = ?;
-// int calibratePinIn = ?;
+const int servoPinIn = 3;
+const int sensorPinIn = A0;
+const int LEDPinOut = 2;
+//const int actuatorPinOut = ?;
+//const int powerPinIn = ?;
+//const int resetPinIn = ?;
+//const int calibratePinIn = ?;
 // ================================
 
 // Hardware Objects ===============
@@ -25,13 +25,13 @@ IRSensor sensor;
 Actuator actuator;
 // ================================
 
-// State Functions =========
+// State Functions ================
 void OFFStateEnterFunction()
 {
   // return arm to rest position
-  // shut off power
   // close actuator
-  // record data?
+  // record data?  
+  // shut off power
 }
 void OFFStateUpdateFunction()
 {
@@ -63,25 +63,45 @@ void CALIBRATINGStateUpdateFunction()
 }
 void CALIBRATINGStateExitFunction()
 {
-  // move arm to rest position
 }
 
 void TEEINGStateEnterFunction()
 {
   // close actuator
+  actuator.Close();
+  
   // move arm to pickup position
+  servo.MoveToPickup();
 }
 void TEEINGStateUpdateFunction()
 {
-  // wait x seconds to collect ball
-  // move arm to extended position
-  // open actuator
-  // close actuator
-  // move arm to pickup position
+  // if no ball is detected
+  if(!sensor.BallIsDetected())
+  {
+    Serial.println("NO BALL DETECTED");
+    
+    // wait x seconds to collect ball
+    servo.WaitForBall();
+    
+    // move arm to extended position
+    servo.MoveToExtended();
+    
+    // open actuator
+    actuator.Open();
+    
+    // close actuator
+    actuator.Close();
+    
+    // move arm to pickup position
+    servo.MoveToPickup();
+  }
+  else
+  {
+    Serial.println("BALL DETECTED");
+  }
 }
 void TEEINGStateExitFunction()
 {
-  // move arm to rest position
 }
 // ================================
 
@@ -113,9 +133,8 @@ State TEEINGState = State(TEEINGStateEnterFunction,
                       TEEINGStateExitFunction);
 
 // Start system in idle state                      
-FSM stateMachine = FSM(IDLEState);
+FSM stateMachine = FSM(TEEINGState);
 // ================================
-
 
 
 void setup()
@@ -136,55 +155,55 @@ void setup()
 void loop()
 {
   // Testing
-  const bool debug = false;
+  const int debug = true;
   if(debug)
   {
-    servo.MoveToPos(90);
-    servo.PrintPosition();    
+    sensor.PrintDistance();
+    delay(1000);
     
-    servo.MoveToPos(100);
-    servo.PrintPosition();
-    
-    servo.MoveToPos(80);
-    servo.PrintPosition();
+    stateMachine.update();
   }
-  
-  // State Machine Implementation
-  Actions previousAction;
-  Actions latestAction;
-  
-  // latestAction = checkForButtonClicks and SensorTimeout
-  
-  // don't transition if the action hasn't changed
-  if(previousAction != latestAction)
-  {  
-    // transition based on latest action
-    switch(latestAction)
-    {
-      case POWER: 
-        stateMachine.transitionTo(OFFState);
-        break;
-      case CALIBRATE: 
-        stateMachine.transitionTo(CALIBRATINGState);
-        break;
-      case RESET: 
-        stateMachine.transitionTo(IDLEState);
-        break;
-      case TEE: 
-        stateMachine.transitionTo(TEEINGState);
-        break;
-      default: 
-        Serial.print("Error: invalid action read: ");
-        Serial.println(latestAction);
-        break;
+  else
+  {
+    // State Machine Implementation
+    Actions previousAction;
+    Actions latestAction;
+    
+    // latestAction = checkForButtonClicks and SensorTimeout
+    
+    // don't transition if the action hasn't changed
+    if(previousAction != latestAction)
+    {  
+      // transition based on latest action
+      switch(latestAction)
+      {
+        case POWER: 
+          stateMachine.transitionTo(OFFState);
+          break;
+        case CALIBRATE: 
+          stateMachine.transitionTo(CALIBRATINGState);
+          break;
+        case RESET: 
+          stateMachine.transitionTo(IDLEState);
+          break;
+        case TEE: 
+          stateMachine.transitionTo(TEEINGState);
+          break;
+        default: 
+          Serial.print("Error: invalid action: ");
+          Serial.println(latestAction);
+          break;
+      }
     }
+    
+    // record this loop's action
+    previousAction = latestAction;
+    
+    // Update the state machine, must be called
+    stateMachine.update();
   }
   
-  // record this loop's action
-  previousAction = latestAction;
   
-  // Update the state machine, must be called
-  stateMachine.update();
 }
 
 

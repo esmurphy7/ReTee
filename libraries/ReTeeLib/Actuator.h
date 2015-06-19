@@ -17,11 +17,13 @@ class Actuator
 		{
 			// use LED for testing
 			digitalWrite(Pin, HIGH);
+			delay(1000);
 		}
 
 		void Close()
 		{
 			// use LED for testing
 			digitalWrite(Pin, LOW);
+			delay(1000);
 		}
 };

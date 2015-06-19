@@ -1,12 +1,14 @@
 #include "Arduino.h"
 
+// Wrapper class for infrared sensor.
+// The greater the distance value, the closer an object is to the sensor.
+// 1cm is equal to about 15 sensor units.
 class IRSensor
 {
 	private:
 		int Pin;
-		int currentDistance = -1;
 		const int MIN_DISTANCE = 200;
-		const int MAX_DISTANCE = 250;
+		const int MAX_DISTANCE = 300;
 
 	public:
 		void Init(int pin)
@@ -16,12 +18,28 @@ class IRSensor
 
 		bool BallIsDetected()
 		{
-			return not ((currentDistance < MIN_DISTANCE) or (currentDistance > MAX_DISTANCE));
+			int currentDistance = GetDistance();
+
+			// if the current distance is outside the range
+			if((currentDistance < MIN_DISTANCE) or (currentDistance > MAX_DISTANCE))
+			{
+				return false;
+			}
+			else
+			{
+				return true;
+			}
 		}
 
-		int ReadDistance()
+		int GetDistance()
 		{
 			int currentDistance = analogRead(Pin);
 			return currentDistance;
 		}	
+
+		void PrintDistance()
+		{
+			Serial.print("Current Distance: ");
+			Serial.println(GetDistance());
+		}
 };
