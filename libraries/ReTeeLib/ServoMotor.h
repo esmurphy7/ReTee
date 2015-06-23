@@ -1,4 +1,3 @@
-#include "Arduino.h"
 #include <math.h>
 
 class ServoMotor
@@ -58,11 +57,6 @@ class ServoMotor
 		void MoveToPickup()
 		{
 			MoveToDeg(PICKUP_POSITION);
-		}
-
-		void MoveToPos(int pos)
-		{
-			MoveToDeg(pos);
 		}
 
 		int GetPosition()

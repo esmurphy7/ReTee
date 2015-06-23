@@ -1,5 +1,3 @@
-#include "Arduino.h"
-
 class Actuator
 {
 	private:

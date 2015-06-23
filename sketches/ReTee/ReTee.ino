@@ -1,11 +1,8 @@
 // Headers ========================
 #include <Servo.h>
+#include <Button.h>
 
-#include "Button.h"
-#include "ServoMotor.h"
-#include "IRSensor.h"
-#include "Actuator.h"
-#include "FiniteStateMachine.h"
+#include "ReTeeLib.h"
 // ================================
 
 // Pin definitions ================
@@ -14,12 +11,12 @@ const int sensorPinIn = A0;
 const int LEDPinOut = 2;
 //const int actuatorPinOut = ?;
 //const int powerPinIn = ?;
-//const int resetPinIn = ?;
+const int resetPinIn = 4;
 //const int calibratePinIn = ?;
 // ================================
 
 // Hardware Objects ===============
-//Button resetButton;
+ReTeeButton resetButton;
 ServoMotor servo;
 IRSensor sensor;
 Actuator actuator;
@@ -43,7 +40,10 @@ void OFFStateExitFunction()
 void IDLEStateEnterFunction()
 {
   // move arm to rest position
+  servo.MoveToRest();
+  
   // close actuator
+  actuator.Close();
 }
 void IDLEStateUpdateFunction()
 {
@@ -80,7 +80,7 @@ void TEEINGStateUpdateFunction()
   {
     Serial.println("NO BALL DETECTED");
     
-    // wait x seconds to collect ball
+    // wait to collect ball
     servo.WaitForBall();
     
     // move arm to extended position
@@ -105,16 +105,6 @@ void TEEINGStateExitFunction()
 }
 // ================================
 
-// State Transition Triggers =======
-enum Actions
-{
-  POWER = 0,
-  CALIBRATE,
-  RESET,
-  TEE
-};
-// ================================
-
 // State Definitions ===============
 State OFFState = State(OFFStateEnterFunction, 
                       OFFStateUpdateFunction, 
@@ -125,17 +115,43 @@ State IDLEState = State(IDLEStateEnterFunction,
                       IDLEStateExitFunction);
                       
 State CALIBRATINGState = State(CALIBRATINGStateEnterFunction,
-                      CALIBRATINGStateUpdateFunction, 
-                      CALIBRATINGStateExitFunction);
+                            CALIBRATINGStateUpdateFunction, 
+                            CALIBRATINGStateExitFunction);
 
 State TEEINGState = State(TEEINGStateEnterFunction, 
-                      TEEINGStateUpdateFunction,
-                      TEEINGStateExitFunction);
+                          TEEINGStateUpdateFunction,
+                          TEEINGStateExitFunction);
 
 // Start system in idle state                      
-FSM stateMachine = FSM(TEEINGState);
+FSM stateMachine = FSM(IDLEState);
 // ================================
 
+
+// Button Checkers =================
+Action CheckResetButton()
+{   
+   if(resetButton.wasPressed())
+   {   
+     Serial.println("RESET PRESSED");
+     delay(1000); 
+   }
+   else
+   {
+     Serial.println("RESET NOT PRESSED");
+     delay(1000);  
+     return NONE;
+   }
+   
+   if(&stateMachine.getCurrentState() == &IDLEState)
+   {
+     return TEE;
+   }
+   else
+   {
+     return RESET; 
+   }   
+}
+// ================================
 
 void setup()
 {  
@@ -150,26 +166,24 @@ void setup()
   
   sensor.Init(sensorPinIn);
   
+  resetButton.Init(resetPinIn, PULLDOWN);
+  
 }
 
 void loop()
 {
   // Testing
-  const int debug = true;
+  const int debug = false;
   if(debug)
   {
-    sensor.PrintDistance();
-    delay(1000);
-    
-    stateMachine.update();
   }
   else
   {
     // State Machine Implementation
-    Actions previousAction;
-    Actions latestAction;
+    Action previousAction;
+    Action latestAction;
     
-    // latestAction = checkForButtonClicks and SensorTimeout
+    latestAction = CheckResetButton();
     
     // don't transition if the action hasn't changed
     if(previousAction != latestAction)
@@ -177,6 +191,8 @@ void loop()
       // transition based on latest action
       switch(latestAction)
       {
+        case NONE:
+          break;
         case POWER: 
           stateMachine.transitionTo(OFFState);
           break;
@@ -192,6 +208,7 @@ void loop()
         default: 
           Serial.print("Error: invalid action: ");
           Serial.println(latestAction);
+          delay(1000);
           break;
       }
     }
@@ -201,13 +218,9 @@ void loop()
     
     // Update the state machine, must be called
     stateMachine.update();
+    delay(1000);
   }
   
   
 }
-
-
-
-
-
 

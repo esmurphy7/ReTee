@@ -1,4 +1,3 @@
-#include "Arduino.h"
 
 // Wrapper class for infrared sensor.
 // The greater the distance value, the closer an object is to the sensor.
